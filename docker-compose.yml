@@ -1,0 +1,68 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management  # Образ RabbitMQ с панелью управления
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"  # Порт для RabbitMQ
+      - "15672:15672"  # Порт для панели управления
+
+  features:
+    build:
+      context: ./features  # Директория для сборки
+    container_name: features
+    restart: always
+    depends_on:
+      - rabbitmq  # Зависимость от rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq  # Переменная окружения
+    networks:
+      - microservice_network
+
+  model:
+    build:
+      context: ./model
+    container_name: model
+    restart: always
+    depends_on:
+      - rabbitmq
+      - features
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    networks:
+      - microservice_network
+
+  metric:
+    build:
+      context: ./metric
+    container_name: metric
+    restart: always
+    depends_on:
+      - rabbitmq
+      - features
+      - model
+    volumes:
+      - C:/Users/Эрфан/Documents/GitHub/Erfan_business_ml_HW1/logs/:/usr/src/app/logs/  # Логи
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    networks:
+      - microservice_network
+
+  plot:
+    build:
+      context: ./plot
+    container_name: plot
+    restart: always
+    depends_on:
+      - rabbitmq
+      - metric
+    volumes:
+      - C:/Users/Эрфан/Documents/GitHub/Erfan_business_ml_HW1/logs/:/usr/src/app/logs/  # Логи
+    environment:
+      LOGS_PATH: /usr/src/app/logs/metric_log.csv  # Путь к логам
+    networks:
+      - microservice_network
+
+networks:
+  microservice_network:  # Сеть для микросервисов
+    driver: bridge
